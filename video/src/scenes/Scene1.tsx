@@ -1,13 +1,13 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { palette, fonts } from "../styles";
+import { AbsoluteFill, Audio, interpolate, staticFile, useCurrentFrame } from "remotion";
+import { palette, fonts, SCENES } from "../styles";
 import { Header } from "../components/Header";
 import { ColumnLabel } from "../components/ColumnLabel";
 import { Card, FieldLabel } from "../components/Card";
 
 export const Scene1: React.FC = () => {
   const frame = useCurrentFrame();
-  const total = 150;
+  const total = SCENES.s1.dur;
 
   const titleY = interpolate(frame, [10, 35], [40, 0], { extrapolateRight: "clamp", extrapolateLeft: "clamp" });
   const titleOpacity = interpolate(frame, [10, 35, total - 18, total], [0, 1, 1, 0], { extrapolateRight: "clamp", extrapolateLeft: "clamp" });
@@ -30,6 +30,7 @@ export const Scene1: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ background: palette.page }}>
+      <Audio src={staticFile("scene1_voice_trim.wav")} />
       <Header />
       <div style={{ display: "flex", gap: 32, padding: "32px 40px", flex: 1 }}>
         <DashboardColumn side="local" highlight={localHighlight} dim={cloudHighlight} />

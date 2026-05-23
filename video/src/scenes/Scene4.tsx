@@ -1,8 +1,10 @@
 import React from "react";
 import {
   AbsoluteFill,
+  Audio,
   interpolate,
   spring,
+  staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
@@ -92,6 +94,7 @@ export const Scene4: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ background: palette.page }}>
+      <Audio src={staticFile("scene4_voice.wav")} />
       <Header />
 
       <div style={{ display: "flex", gap: 24, padding: "20px 32px", flex: 1, minHeight: 0 }}>

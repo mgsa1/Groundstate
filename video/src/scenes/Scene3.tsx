@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Audio, interpolate, staticFile, useCurrentFrame } from "remotion";
 import { palette, fonts } from "../styles";
 import { Header } from "../components/Header";
 import { Card, FieldLabel } from "../components/Card";
@@ -43,6 +43,7 @@ export const Scene3: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ background: palette.page }}>
+      <Audio src={staticFile("scene3_voice_trim.wav")} />
       <Header />
       <div style={{ display: "flex", gap: 24, padding: "32px 40px", flex: 1, alignItems: "stretch", position: "relative" }}>
         {/* LEFT: privileged memo */}

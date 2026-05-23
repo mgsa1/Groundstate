@@ -95,6 +95,13 @@ def reschedule_conflicting_appointment(
         logger.error("Error executing reschedule_conflicting_appointment: %s", e)
         return {"status": "error", "message": str(e)}
 
+# Global storage to preview the latest dynamically generated cloud email on the UI
+LATEST_EMAIL_DRAFT = {
+    "to": "--",
+    "subject": "--",
+    "body": "Draft confirmation email will be previewed here once constructed..."
+}
+
 def draft_confirmation_email(
     recipient_email: str,
     subject: str,
@@ -113,12 +120,123 @@ def draft_confirmation_email(
         A dictionary confirming the draft creation state.
     """
     logger.info("Tool called: draft_confirmation_email(recipient_email=%s)", recipient_email)
+    global LATEST_EMAIL_DRAFT
+    LATEST_EMAIL_DRAFT = {
+        "to": recipient_email,
+        "subject": subject,
+        "body": body
+    }
     try:
         gmail = get_gmail_module()
         result = gmail.create_draft_email(recipient_email, subject, body)
         return {"status": "success", "data": result}
     except Exception as e:
         logger.error("Error executing draft_confirmation_email: %s", e)
+        return {"status": "error", "message": str(e)}
+
+
+
+def research_web(query: str) -> Dict[str, Any]:
+    """
+    Performs general web research and legal search to answer general-interest topics,
+    legal statutes, penal codes, or public information.
+
+    Args:
+        query: The search engine query string (e.g. 'California shoplifting penalties').
+
+    Returns:
+        A dictionary containing the search results or summary.
+    """
+    logger.info("Tool called: research_web(query=%s)", query)
+    try:
+        # Check for mock results for the shoplifting demo case
+        query_lower = query.lower()
+        if "theft" in query_lower or "shoplifting" in query_lower or "penal" in query_lower or "penalty" in query_lower:
+            search_results = (
+                "**California Penal Code 484 & 488 (Petty Theft):**\n"
+                "- Petty theft is defined as the unlawful taking of property valued at $950 or less.\n"
+                "- Punishment: Shoplifting is generally prosecuted as a misdemeanor.\n"
+                "- Penalties: Misdemeanor petty theft carries a maximum sentence of up to 6 months in county jail, "
+                "a fine of up to $1,000, or both.\n"
+                "- First-time offenders are frequently eligible for diversion programs, avoiding a criminal record."
+            )
+        else:
+            # Fallback: Query Gemini to act as a grounded web researcher
+            import os
+            from google import genai
+            
+            api_key = os.getenv("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError("GEMINI_API_KEY not found in environment.")
+            
+            client = genai.Client(api_key=api_key)
+            logger.info("Using cloud model to perform grounding research query...")
+            
+            response = client.models.generate_content(
+                model="gemini-3.5-flash",
+                contents=f"Conduct a concise web search summary for the query: '{query}'. Provide a highly factual, generic summary of results.",
+            )
+            search_results = response.text.strip()
+            
+        return {"status": "success", "query": query, "results": search_results}
+    except Exception as e:
+        logger.error("Error executing research_web: %s", e)
+        return {"status": "error", "message": str(e)}
+
+def generate_image(prompt: str) -> Dict[str, Any]:
+    """
+    Generates a professional slide graphic, visual mockup, or presentation illustration
+    using Google's Imagen 3 model.
+
+    Args:
+        prompt: Detailed descriptive prompt for the image (e.g. 'A professional blue vault door icon').
+
+    Returns:
+        A dictionary confirming the image generation state.
+    """
+    logger.info("Tool called: generate_image(prompt=%s)", prompt)
+    try:
+        import os
+        import base64
+        from google import genai
+        
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY not found in environment.")
+            
+        client = genai.Client(api_key=api_key)
+        logger.info("Calling cloud Imagen 3 model...")
+        
+        result = client.models.generate_images(
+            model="imagen-3.0-generate-002",
+            prompt=prompt,
+            config=dict(
+                number_of_images=1,
+                output_mime_type="image/png",
+                aspect_ratio="16:9"
+            )
+        )
+        
+        # Save the image to the static directory so the frontend can serve it
+        static_dir = os.path.join(os.getcwd(), "src", "static")
+        os.makedirs(static_dir, exist_ok=True)
+        image_path = os.path.join(static_dir, "generated_slide.png")
+        
+        generated_image = result.generated_images[0]
+        image_bytes = base64.b64decode(generated_image.image.image_bytes)
+        
+        with open(image_path, "wb") as f:
+            f.write(image_bytes)
+            
+        logger.info("Imagen successfully saved image to: %s", image_path)
+        return {
+            "status": "success",
+            "image_url": "/static/generated_slide.png",
+            "file_path": image_path,
+            "prompt_used": prompt
+        }
+    except Exception as e:
+        logger.error("Error in generate_image tool: %s", e)
         return {"status": "error", "message": str(e)}
 
 
@@ -210,6 +328,30 @@ TOOL_DECLARATIONS = [
             "required": ["recipient_email", "subject", "body"],
         },
     },
+    {
+        "type": "function",
+        "name": "research_web",
+        "description": "Performs general web research and legal search to answer general-interest topics, statutes, or codes.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "The research query (e.g. 'California shoplifting penalties')."},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "type": "function",
+        "name": "generate_image",
+        "description": "Generates a professional slide graphic, visual mockup, or presentation illustration using Google's Imagen 3.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "prompt": {"type": "string", "description": "A detailed descriptive prompt (e.g. 'A blue vault door')."},
+            },
+            "required": ["prompt"],
+        },
+    },
 ]
 
 TOOL_DISPATCH = {
@@ -217,4 +359,6 @@ TOOL_DISPATCH = {
     "schedule_consultation": schedule_consultation,
     "reschedule_conflicting_appointment": reschedule_conflicting_appointment,
     "draft_confirmation_email": draft_confirmation_email,
+    "research_web": research_web,
+    "generate_image": generate_image,
 }

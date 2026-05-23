@@ -51,12 +51,15 @@ MOCK_PRIVILEGED_MEMO = (
     "**Requested follow-up:** Non-confidential scheduling for consultation next week."
 )
 
-MOCK_SANITIZED_JSON = {
-    "action": "schedule_followup",
-    "urgency": "next_week",
-    "duration_minutes": 60,
-    "priority": "normal"
-}
+MOCK_SANITIZED_JSON = [
+    {
+        "tool": "schedule_event",
+        "title": "Intake Consultation",
+        "timeframe": "next_week",
+        "duration_minutes": 60,
+        "priority": "normal"
+    }
+]
 
 @app.get("/api/calendar/setup")
 def reset_calendar():
@@ -83,10 +86,10 @@ async def run_pipeline(mode: str = Query("simulated", regex="^(simulated|live)$"
         wav_path = None
         if mode == "live":
             yield {"event": "status", "data": "🎙️ Live Microphone Active. Speak now! (Recording 10 seconds)..."}
-            # Setup recording path
-            local_dir = os.path.join(os.getcwd(), "local_case_files")
-            os.makedirs(local_dir, exist_ok=True)
-            wav_path = os.path.join(local_dir, "live_capture.wav")
+            # Setup recording path in static directory to allow browser playback
+            static_dir = os.path.join(os.getcwd(), "src", "static")
+            os.makedirs(static_dir, exist_ok=True)
+            wav_path = os.path.join(static_dir, "live_capture.wav")
             
             try:
                 from src.audio import AudioRecorder
@@ -152,9 +155,9 @@ async def run_pipeline(mode: str = Query("simulated", regex="^(simulated|live)$"
         }
         await asyncio.sleep(0.5)
 
-        # Check if no scheduling action or client intake was requested, and halt early if so
-        if sanitized_json.get("action") == "none" or privileged_memo == "Failed to extract privileged memo.":
-            yield {"event": "status", "data": "🛑 No scheduling intent detected in speech. Pipeline halted safely."}
+        # Check if no dynamic actions are requested or if privileged memo failed
+        if not sanitized_json or privileged_memo == "Failed to extract privileged memo.":
+            yield {"event": "status", "data": "🛑 No actions or scheduling intent detected in speech. Pipeline halted safely."}
             await asyncio.sleep(0.5)
             yield {"event": "completed", "data": "Pipeline coordination finished. No actions required!"}
             return
@@ -167,17 +170,28 @@ async def run_pipeline(mode: str = Query("simulated", regex="^(simulated|live)$"
             from src.gemini_agent import interact_with_agent
             loop = asyncio.get_event_loop()
             
-            # Formulate the payload string with explicit, step-by-step reasoning instructions
+            # Formulate a truly general-purpose, autonomous dynamic coordinator prompt
             payload_str = (
-                f"You are a secure workspace agent. You must resolve calendar conflicts and book a consultation by executing these steps strictly in order:\n\n"
-                f"1. Call `list_upcoming_events` with `hours_ahead=168` to check the schedules of both the Lawyer (primary calendar) and Client Matthieu.\n"
-                f"2. Inspect the events. Notice the Lawyer is fully booked next week except for the single Wednesday 2:00 PM to 3:00 PM slot (the ONLY available slot).\n"
-                f"3. Notice the Client has a flexible 'Hairdresser Appointment' from 2:00 PM to 3:30 PM on that same Wednesday, creating a direct conflict.\n"
-                f"4. Resolve this conflict: call `reschedule_conflicting_appointment` to move the Client's hairdresser event (using its retrieved event ID) to start at 3:30 PM on that same Wednesday, clearing the 2:00 PM slot.\n"
-                f"5. Book the intake: call `schedule_consultation` at 2:00 PM on that Wednesday for 60 minutes, inviting `cod.legend95@gmail.com` as an attendee.\n"
-                f"6. Draft confirmation: call `draft_confirmation_email` to draft a Gmail message in Gmail for `cod.legend95@gmail.com` confirming the Wednesday 2:00 PM booking, and advising them that their hairdresser slot was shifted to 3:30 PM. Maintain strict confidentiality: do NOT mention any case secrets, crimes, bakery, or banana bread.\n\n"
-                f"Here is the sanitized intake intent:\n"
-                f"{json.dumps(sanitized_json, indent=2)}\n"
+                "You are an autonomous secure cloud coordination agent. You have received the following array of sanitized, PII-free tool actions "
+                "from the on-device secure planner:\n\n"
+                f"{json.dumps(sanitized_json, indent=2)}\n\n"
+                "Your objective is to coordinate and execute these actions strictly by calling the appropriate local Python tools.\n\n"
+                "CRITICAL OPERATIONAL PROTOCOLS:\n"
+                "1. **Formulate & Communicate a Plan:** Before executing any tools, inspect the requested actions. Output a brief, natural message to the user explaining what requests you received and your planned sequence of steps.\n"
+                "2. **Dynamic Scheduling (schedule_event):**\n"
+                "   - Check availability first by calling `list_upcoming_events` (hours_ahead=168).\n"
+                "   - Inspect the returned events. Identify the specific day and time requested by the client.\n"
+                "   - Check if that requested slot is free. If it is fully available, book it directly using `schedule_consultation`.\n"
+                "   - ONLY reschedule an existing event (using `reschedule_conflicting_appointment`) if there is a direct, unavoidable overlap with a low-priority personal task (e.g. 'Hairdresser', 'Gym', 'Groceries').\n"
+                "   - If the requested time is blocked by a high-priority, unmovable professional event (e.g. Court Hearing, Board Mediation), explain the conflict clearly and suggest a nearby open slot instead of forcing the booking.\n"
+                "   - Draft a generic, non-privileged confirmation email using `draft_confirmation_email` to invite `cod.legend95@gmail.com`.\n"
+                "3. **Dynamic Web Research (research_web):**\n"
+                "   - Execute `research_web` with the exact query to look up public statutes, penalties, or facts.\n"
+                "   - Present a clear, factual, and formatted summary on screen. Do NOT touch the calendar or compose emails unless a scheduling action was also requested.\n"
+                "4. **Dynamic Image Generation (generate_image):**\n"
+                "   - Execute `generate_image` with the detailed graphic description.\n"
+                "   - Inform the user that the graphic has been created. ALWAYS render the Markdown image tag `![Generated Slide](/static/generated_slide.png)` in your text stream so it displays inline on the dashboard.\n\n"
+                "Execute these actions dynamically. Adapt your steps entirely to the incoming payload. Stream your thoughts and tool execution logs clearly."
             )
 
             # Define generator for streaming
@@ -210,17 +224,11 @@ async def run_pipeline(mode: str = Query("simulated", regex="^(simulated|live)$"
                 "data": json.dumps({"appointments": appointments})
             }
 
-            # Retrieve created draft email (if any)
-            # In mock or tool calls, the draft email is created dynamically in drafts folder.
-            # We can mock showing what was created.
-            client_email = os.getenv("CLIENT_EMAIL", "matthieu@example.com")
+            # Retrieve dynamically created draft email details to display on screen
+            from src.tools import LATEST_EMAIL_DRAFT
             yield {
                 "event": "email_draft",
-                "data": json.dumps({
-                    "to": client_email,
-                    "subject": "Intake Case Consultation Scheduled",
-                    "body": f"Hi,\n\nThis is a confirmation that our consultation is booked for Wednesday at 2:00 PM. Please note that we have rescheduled your hair appointment to 3:30 PM. Let us know if you need anything else.\n\nBest regards,\nOffice of Legal Counsel"
-                })
+                "data": json.dumps(LATEST_EMAIL_DRAFT)
             }
 
         except Exception as e:

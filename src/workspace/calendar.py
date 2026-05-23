@@ -56,9 +56,9 @@ def setup_demo_events() -> Dict[str, Any]:
        - Next Tuesday: Completely booked ("09:00-12:00: Supreme Court Hearing", "13:00-17:00: Deposition Hearings")
        - Next Wednesday: Booked EXCEPT for 2:00 PM - 3:00 PM ("09:00-13:00: Board Mediation", "15:00-17:00: Partner Sync")
     2. Client Matthieu (Secondary Calendar):
-       - Next Monday: "10:00-12:00: Hanging around unsuspiciously near Tartine Bakery"
+       - Next Monday: "10:00-12:00: 🕵️ Conspicuously looking at banana bread"
        - Next Wednesday: "12:00-13:30: Grocery Shopping & Tartine Bakery Run"
-       - Next Wednesday: "14:00-15:30: 💇 Flexible Hairdresser Appointment" (CONFLICTS WITH LAWYER'S ONLY SLOT!)
+       - Next Wednesday: "14:00-15:30: 🛒 Banana grocery run (Conflicting)" (CONFLICTS WITH LAWYER'S ONLY SLOT!)
     """
     service = get_calendar_service()
     client_cal_id = get_or_create_client_calendar(service)
@@ -140,7 +140,7 @@ def setup_demo_events() -> Dict[str, Any]:
     # 3. Populate Client's Calendar (Matthieu)
     client_events = [
         {
-            "summary": "🕵️ Hanging near Tartine Bakery",
+            "summary": "🕵️ Conspicuously looking at banana bread",
             "start": {"dateTime": f"{next_monday}T10:00:00", "timeZone": "America/Los_Angeles"},
             "end": {"dateTime": f"{next_monday}T12:00:00", "timeZone": "America/Los_Angeles"},
             "colorId": "9"  # Blueberry Blue
@@ -152,7 +152,7 @@ def setup_demo_events() -> Dict[str, Any]:
             "colorId": "9"  # Blueberry Blue
         },
         {
-            "summary": "💇 Hairdresser Appointment (Conflicting)",
+            "summary": "🛒 Banana grocery run (Conflicting)",
             "start": {"dateTime": f"{next_wednesday}T14:00:00", "timeZone": "America/Los_Angeles"},
             "end": {"dateTime": f"{next_wednesday}T15:30:00", "timeZone": "America/Los_Angeles"},
             "colorId": "9"  # Blueberry Blue

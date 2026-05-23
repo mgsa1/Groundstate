@@ -599,6 +599,42 @@
             font-feature-settings: 'liga';
             -webkit-font-smoothing: antialiased;
         }
+
+        /* Tool Call Badge & Thinking Dots Animation */
+        .tool-call-badge {
+            background: var(--surface-local);
+            border: 1px solid var(--border-local);
+            border-radius: var(--r-1);
+            padding: var(--s-1) var(--s-3);
+            margin: var(--s-2) 0 var(--s-2) 0;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--local-ink);
+            display: block;
+            box-shadow: var(--shadow-1);
+            width: fit-content;
+        }
+        .tool-call-args {
+            color: var(--text-2);
+        }
+        .thinking-dots span {
+            animation: blink 1.4s infinite both;
+            font-weight: bold;
+            font-size: 1.25rem;
+            line-height: 0.8;
+            display: inline-block;
+        }
+        .thinking-dots span:nth-child(2) {
+            animation-delay: .2s;
+        }
+        .thinking-dots span:nth-child(3) {
+            animation-delay: .4s;
+        }
+        @keyframes blink {
+            0% { opacity: .2; }
+            20% { opacity: 1; }
+            100% { opacity: .2; }
+        }
     </style>
 </head>
 <body>
@@ -644,6 +680,15 @@
                     <button class="btn btn-danger" onclick="setupCalendar()">
                         <span class="material-symbols-outlined">refresh</span> Reset calendars
                     </button>
+                </div>
+
+                <!-- Hidden Audio Playback for Debugging -->
+                <div id="audio-playback-container" style="margin-top: 10px; margin-bottom: 10px; display: none; padding: 10px; background: var(--surface-card); border: 1px solid var(--border-1); border-radius: var(--r-2); animation: gs-ledger-in 200ms ease;">
+                    <div class="field-label" style="margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
+                        <span class="material-symbols-outlined" style="font-size: 14px; color: var(--primary);">audiotrack</span>
+                        Captured Mic Audio (Playback)
+                    </div>
+                    <audio id="audio-playback" controls style="width: 100%; height: 32px; outline: none;"></audio>
                 </div>
 
                 <div class="stack">
@@ -805,6 +850,38 @@
             }
         }
 
+        function renderMarkdown(text) {
+            let html = text.trim();
+            
+            // Render markdown image tags inline
+            html = html.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" style="width: 100%; max-height: 240px; object-fit: cover; border-radius: var(--r-2); border: 1px solid var(--border-2); margin-top: 10px; display: block; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15));">');
+            
+            // Render tool calls inline with premium styled badge
+            html = html.replace(/\[Calling ([a-zA-Z0-9_]+)\((.*?)\)\]/g, '<div class="tool-call-badge">🛠️ Calling <strong>$1</strong>(<span class="tool-call-args">$2</span>)</div>');
+            
+            // Headers
+            html = html.replace(/^###\s+(.*?)$/gm, '<h4 style="margin: 8px 0 4px 0; font-weight: 600;">$1</h4>');
+            html = html.replace(/^##\s+(.*?)$/gm, '<h3 style="margin: 12px 0 6px 0; font-weight: 700;">$1</h3>');
+            html = html.replace(/^#\s+(.*?)$/gm, '<h2 style="margin: 16px 0 8px 0; font-weight: 700;">$1</h2>');
+            
+            // Bold
+            html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+            
+            // Italic
+            html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
+            
+            // Bullet Lists
+            html = html.replace(/^\s*[-*]\s+(.*?)$/gm, "• $1");
+            
+            // Numbered Lists
+            html = html.replace(/^\s*(\d+)\.\s+(.*?)$/gm, "<strong>$1.</strong> $2");
+            
+            // Newlines to breaks
+            html = html.replace(/\n/g, "<br>");
+            
+            return html;
+        }
+
         function processStreamAndUpdateUI(delta) {
             fullAgentText += delta;
             
@@ -824,20 +901,23 @@
                 
                 let formattedArgs = "";
                 try {
-                    const argsObj = JSON.parse(rawArgs);
-                    formattedArgs = Object.entries(argsObj)
-                        .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+                    const parsedArgs = JSON.parse(rawArgs);
+                    formattedArgs = Object.entries(parsedArgs)
+                        .map(([k, v]) => `${k}: ${v}`)
                         .join(", ");
                 } catch (e) {
                     formattedArgs = rawArgs;
                 }
                 
-                const uniqueKey = `${toolName}_${rawArgs}`;
-                if (!processedToolCalls.has(uniqueKey)) {
-                    processedToolCalls.add(uniqueKey);
+                const existingItem = Array.from(ledgerContainer.querySelectorAll(".ledger-item"))
+                    .find(item => item.textContent.includes(toolName) && item.textContent.includes(formattedArgs));
+                
+                if (!existingItem) {
+                    if (placeholder) {
+                        placeholder.style.display = "none";
+                    }
                     
-                    if (placeholder) placeholder.remove();
-                    
+                    // Mark previous running steps as done
                     const activeItems = ledgerContainer.querySelectorAll(".ledger-item");
                     activeItems.forEach(item => {
                         const statusSpan = item.querySelector(".ledger-status");
@@ -864,6 +944,12 @@
                     } else if (toolName === "draft_confirmation_email") {
                         emoji = "✉️";
                         readableName = "Draft Confirmation Gmail";
+                    } else if (toolName === "research_web") {
+                        emoji = "🌐";
+                        readableName = "Research Web";
+                    } else if (toolName === "generate_image") {
+                        emoji = "🎨";
+                        readableName = "Generate Slide Graphic";
                     }
                     
                     item.innerHTML = `
@@ -878,13 +964,7 @@
             }
             
             cleanText = cleanText.trim();
-            let htmlContent = cleanText;
-            
-            htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-            htmlContent = htmlContent.replace(/\*(.*?)\*/g, "<em>$1</em>");
-            htmlContent = htmlContent.replace(/^\s*[-*]\s+(.*?)$/gm, "• $1");
-            htmlContent = htmlContent.replace(/^\s*(\d+)\.\s+(.*?)$/gm, "<strong>$1.</strong> $2");
-            htmlContent = htmlContent.replace(/\n/g, "<br>");
+            const htmlContent = renderMarkdown(cleanText);
             
             const streamBox = document.getElementById("agent-stream");
             streamBox.innerHTML = htmlContent || "Agent is analyzing client request...";
@@ -951,6 +1031,10 @@
             document.getElementById("transcript-display").textContent = "Transcribing...";
             document.getElementById("payload-display").textContent = "Preparing payload...";
             document.getElementById("action-ledger").innerHTML = `<div class="ledger-placeholder">Ingesting and processing secure local payload...</div>`;
+            
+            // Hide audio playback card on fresh start
+            const audioContainer = document.getElementById("audio-playback-container");
+            if (audioContainer) audioContainer.style.display = "none";
 
             eventSource.addEventListener("status", (event) => {
                 log(event.data, "status");
@@ -960,6 +1044,14 @@
                 const data = JSON.parse(event.data);
                 document.getElementById("transcript-display").innerHTML = data.transcript;
                 log(`Local transcription finished: "${data.transcript.substring(0, 50)}..."`, "success");
+                
+                if (mode === 'live') {
+                    const audioPlayer = document.getElementById("audio-playback");
+                    if (audioContainer && audioPlayer) {
+                        audioPlayer.src = `/static/live_capture.wav?t=${Date.now()}`;
+                        audioContainer.style.display = "block";
+                    }
+                }
             });
 
             eventSource.addEventListener("local_memo", (event) => {
@@ -1040,6 +1132,13 @@
 
             log(`Sending security probe: "${prompt}"`, "warning");
 
+            // Append agent thinking bubble
+            const thinkingBubble = document.createElement("div");
+            thinkingBubble.className = "chat-bubble bubble-agent thinking-bubble";
+            thinkingBubble.innerHTML = '<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
+            chatMessages.appendChild(thinkingBubble);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
             try {
                 const res = await fetch("/api/confidentiality-proof", {
                     method: "POST",
@@ -1048,16 +1147,25 @@
                 });
                 const data = await res.json();
 
+                // Remove thinking bubble
+                if (thinkingBubble.parentNode) {
+                    thinkingBubble.parentNode.removeChild(thinkingBubble);
+                }
+
                 // Append agent response
                 const agentBubble = document.createElement("div");
                 agentBubble.className = "chat-bubble bubble-agent";
-                agentBubble.textContent = data.response;
+                agentBubble.innerHTML = renderMarkdown(data.response);
                 chatMessages.appendChild(agentBubble);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
 
                 log("Managed Agent query verified. Privilege intact.", "success");
 
             } catch (e) {
+                // Remove thinking bubble on error
+                if (thinkingBubble.parentNode) {
+                    thinkingBubble.parentNode.removeChild(thinkingBubble);
+                }
                 log(`Verification query failed: ${e.message}`, "warning");
             }
         }

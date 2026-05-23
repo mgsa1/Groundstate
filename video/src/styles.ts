@@ -30,7 +30,7 @@ export const VIDEO = {
   width: 1920,
   height: 1080,
   fps: 30,
-  durationFrames: 1200, // 40 seconds
+  durationFrames: 1315, // 43.83 seconds — sized to fit per-scene voiceovers
 };
 
 // VeoIntro is unwired for now (audio decode issues in Studio).
@@ -39,10 +39,13 @@ export const VEO_INTRO = {
   dur: 480,
 };
 
+// Scene durations are sized to fit each scene_N_voice.wav voiceover
+// (audio is decoded from .m4a → .wav to avoid Chromium AAC decode issues).
+// Scenes 1, 2, 3 use *_trim.wav files with leading silence removed.
 export const SCENES = {
-  s1: { start: 0,    dur: 150 },  //  0.0 -  5.0s
-  s2: { start: 150,  dur: 270 },  //  5.0 - 14.0s
-  s3: { start: 420,  dur: 180 },  // 14.0 - 20.0s
-  s4: { start: 600,  dur: 360 },  // 20.0 - 32.0s
-  s5: { start: 960,  dur: 240 },  // 32.0 - 40.0s
+  s1: { start: 0,     dur: 188 },  //  0.00 -  6.27s · voice 6.15s (trimmed 1.4s head)
+  s2: { start: 188,   dur: 345 },  //  6.27 - 17.77s · voice 11.29s (trimmed 1.0s head)
+  s3: { start: 533,   dur: 227 },  // 17.77 - 25.33s · voice  7.50s (trimmed 0.6s head)
+  s4: { start: 760,   dur: 315 },  // 25.33 - 35.83s · voice 7.89s (trimmed 1.5s of tail)
+  s5: { start: 1075,  dur: 240 },  // 35.83 - 43.83s · voice 7.25s
 };
