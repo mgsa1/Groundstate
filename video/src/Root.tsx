@@ -8,6 +8,7 @@ import { Scene3 } from "./scenes/Scene3";
 import { Scene4 } from "./scenes/Scene4";
 import { Scene5 } from "./scenes/Scene5";
 import { SceneCalendars } from "./scenes/SceneCalendars";
+import { ReadmeGif } from "./scenes/ReadmeGif";
 
 export const Root: React.FC = () => {
   return (
@@ -26,6 +27,14 @@ export const Root: React.FC = () => {
       <Composition id="Scene4" component={Scene4} durationInFrames={360} fps={VIDEO.fps} width={VIDEO.width} height={VIDEO.height} />
       <Composition id="Scene5" component={Scene5} durationInFrames={240} fps={VIDEO.fps} width={VIDEO.width} height={VIDEO.height} />
       <Composition id="SceneCalendars" component={SceneCalendars} durationInFrames={300} fps={VIDEO.fps} width={VIDEO.width} height={VIDEO.height} />
+      <Composition
+        id="ReadmeGif"
+        component={ReadmeGif}
+        durationInFrames={300}
+        fps={30}
+        width={1280}
+        height={720}
+      />
     </>
   );
 };

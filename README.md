@@ -4,6 +4,10 @@ Privacy-preserving local/cloud workspace coordination agent. Hackathon submissio
 
 A voice-driven workspace agent that pairs a local on-device LLM (MLX) with cloud Gemini for tasks that need broader knowledge, while keeping sensitive context local by default.
 
+![Groundstate — private voice in, cloud agent out](docs/groundstate.gif)
+
+**What you're seeing:** raw voice + transcript are captured and processed entirely on-device by Gemma 3n. A sanitizer strips PII and produces a tiny 4-field JSON payload. Only that payload crosses the wire to Gemini 3.5 Flash, which runs as a managed agent and orchestrates the real workspace tools (calendar, email, etc.) — all while the privileged source memo never leaves the local disk.
+
 ## Stack
 
 - **Local LLM**: `mlx-vlm` for on-device inference
