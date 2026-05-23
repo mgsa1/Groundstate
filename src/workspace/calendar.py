@@ -73,25 +73,26 @@ def setup_demo_events() -> Dict[str, Any]:
     next_tuesday = next_monday + datetime.timedelta(days=1)
     next_wednesday = next_monday + datetime.timedelta(days=2)
 
-    # 1. Clear existing events for the next 7 days in both calendars
-    now_iso = datetime.datetime.utcnow().isoformat() + "Z"
-    future_iso = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).isoformat() + "Z"
+    # 1. Clear existing events for next 10 days in both calendars to avoid overlaps
+    time_min = (datetime.datetime.combine(today, datetime.time.min) - datetime.timedelta(days=1)).isoformat() + "Z"
+    time_max = (datetime.datetime.combine(today, datetime.time.min) + datetime.timedelta(days=10)).isoformat() + "Z"
 
     for cal_id in ["primary", client_cal_id]:
-        if cal_id == "primary" or cal_id != "primary":
-            try:
-                events_result = service.events().list(
-                    calendarId=cal_id,
-                    timeMin=now_iso,
-                    timeMax=future_iso,
-                    singleEvents=True
-                ).execute()
-                for event in events_result.get("items", []):
-                    summary = event.get("summary", "")
-                    if any(label in summary for label in ["Hearing", "Deposition", "Mediation", "Partner Sync", "Arbitrations", "Tartine", "Hairdresser", "Grocery", "Consultation"]):
-                        service.events().delete(calendarId=cal_id, eventId=event["id"]).execute()
-            except Exception as e:
-                logger.warning("Could not clear events for calendar %s: %s", cal_id, e)
+        try:
+            events_result = service.events().list(
+                calendarId=cal_id,
+                timeMin=time_min,
+                timeMax=time_max,
+                singleEvents=True
+            ).execute()
+            for event in events_result.get("items", []):
+                try:
+                    service.events().delete(calendarId=cal_id, eventId=event["id"]).execute()
+                except Exception as delete_error:
+                    # Ignore read-only calendars like US public holidays
+                    logger.debug("Skipping read-only event deletion for %s: %s", event.get("summary"), delete_error)
+        except Exception as e:
+            logger.warning("Could not clear events for calendar %s: %s", cal_id, e)
 
     # 2. Populate Lawyer's Calendar (primary)
     lawyer_events = [
