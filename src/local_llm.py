@@ -16,19 +16,30 @@ _processor = None
 _config = None
 
 def get_model_instances():
-    """Lazy loads or returns the active MLX Gemma model and processor."""
+    """Lazy loads or returns the active MLX Gemma model and processor, prioritizing offline cache."""
     global _model, _processor, _config
     if _model is None:
         model_path = "mlx-community/gemma-3n-E2B-it-4bit"
-        logger.info("Initializing local Gemma 3n E2B IT (4-bit MLX)... This may download the model (~2GB) on first run.")
         try:
             from mlx_vlm import load
+            # Force Hugging Face to load strictly from local cache to avoid slow update checks
+            os.environ["HF_HUB_OFFLINE"] = "1"
+            logger.info("Attempting to load local Gemma 3n E2B model strictly offline...")
             _model, _processor = load(model_path)
             _config = _model.config
-            logger.info("Local Gemma 3n E2B model successfully loaded on macOS Metal.")
-        except Exception as e:
-            logger.error("Failed to load local Gemma 3n E2B: %s", e)
-            raise e
+            logger.info("Local Gemma 3n E2B model successfully loaded offline from cache.")
+        except Exception as offline_err:
+            logger.info("Offline load failed or model not in cache (%s). Fetching from Hugging Face Hub...", offline_err)
+            os.environ["HF_HUB_OFFLINE"] = "0"
+            try:
+                from mlx_vlm import load
+                logger.info("Initializing local Gemma 3n E2B IT (4-bit MLX)... This may download the model (~2GB) on first run.")
+                _model, _processor = load(model_path)
+                _config = _model.config
+                logger.info("Local Gemma 3n E2B model successfully downloaded/updated and loaded.")
+            except Exception as e:
+                logger.error("Failed to load local Gemma 3n E2B: %s", e)
+                raise e
     return _model, _processor, _config
 
 def programmatically_sanitize(json_str: str) -> dict:
@@ -47,8 +58,11 @@ def programmatically_sanitize(json_str: str) -> dict:
 
     # Extract JSON-like content between curly braces if malformed
     match = re.search(r"\{.*\}", json_str, re.DOTALL)
-    if match:
-        json_str = match.group(0)
+    if not match:
+        logger.warning("No JSON block found. Falling back to clean standard payload.")
+        return default_payload
+        
+    json_str = match.group(0)
 
     try:
         data = json.loads(json_str)
@@ -74,8 +88,9 @@ def programmatically_sanitize(json_str: str) -> dict:
         cleaned_data[k] = clean_value(v)
         
     # Ensure mandatory fields exist and are sanitized
-    if "action" not in cleaned_data or not cleaned_data["action"]:
-        cleaned_data["action"] = "schedule_followup"
+    if "action" not in cleaned_data or not cleaned_data["action"] or cleaned_data["action"] == "none":
+        return {"action": "none"}
+        
     if "urgency" not in cleaned_data or not cleaned_data["urgency"]:
         cleaned_data["urgency"] = "next_week"
     if "duration_minutes" not in cleaned_data:
@@ -110,11 +125,14 @@ def process_audio(wav_path: str) -> dict:
     prompt = (
         "You are a highly secure on-device legal assistant. You are listening to a privileged audio conversation between a client and their attorney.\n"
         "Analyze the input audio and output your response strictly inside the following XML tag blocks:\n\n"
+        "<raw_speech>\n"
+        "Provide a complete, word-for-word raw transcription of the client's spoken audio.\n"
+        "</raw_speech>\n\n"
         "<case_memo>\n"
         "Provide a detailed, highly confidential case intake memo in markdown. Include all specific details heard: client name, location of the event, what happened, the alleged crime, what evidence or confession was provided, and the follow-up request.\n"
         "</case_memo>\n\n"
         "<sanitized_json>\n"
-        "Provide a completely sanitized, generic, and content-free JSON payload strictly matching this schema. It MUST contain NO names, NO locations, NO specific details of any crime or incident (e.g. do not mention 'banana bread', 'stealing', 'theft', 'Tartine', 'Matthieu', etc.):\n"
+        "Provide a completely sanitized, generic, and content-free JSON payload strictly matching this schema. It MUST contain NO names, NO locations, NO specific details of any crime or incident (e.g. do not mention 'banana bread', 'stealing', 'theft', 'Tartine', 'Matthieu', etc.). If there is no scheduling request in the audio, return {\"action\": \"none\"}. Otherwise:\n"
         "{\n"
         "  \"action\": \"schedule_followup\",\n"
         "  \"urgency\": \"next_week\",\n"
@@ -147,10 +165,20 @@ def process_audio(wav_path: str) -> dict:
     logger.info("Local Gemma inference finished.")
     logger.debug("Raw Local LLM Output: %s", raw_output)
 
-    # Parse output blocks using regular expressions
-    memo_match = re.search(r"<case_memo>(.*?)</case_memo>", raw_output, re.DOTALL)
-    json_match = re.search(r"<sanitized_json>(.*?)</sanitized_json>", raw_output, re.DOTALL)
+    # Convert the GenerationResult object or other raw format to standard string defensively
+    if hasattr(raw_output, "text"):
+        raw_text = raw_output.text
+    elif isinstance(raw_output, str):
+        raw_text = raw_output
+    else:
+        raw_text = str(raw_output)
 
+    # Parse output blocks using regular expressions
+    speech_match = re.search(r"<raw_speech>(.*?)</raw_speech>", raw_text, re.DOTALL)
+    memo_match = re.search(r"<case_memo>(.*?)</case_memo>", raw_text, re.DOTALL)
+    json_match = re.search(r"<sanitized_json>(.*?)</sanitized_json>", raw_text, re.DOTALL)
+
+    raw_speech = speech_match.group(1).strip() if speech_match else "No raw speech transcription available."
     privileged_memo = memo_match.group(1).strip() if memo_match else "Failed to extract privileged memo."
     raw_json_payload = json_match.group(1).strip() if json_match else "{}"
 
@@ -166,7 +194,7 @@ def process_audio(wav_path: str) -> dict:
     logger.info("Saved local secure privileged memo to: %s", memo_path)
 
     return {
-        "raw_transcript": "Detailed confession audio parsed successfully.",
+        "raw_transcript": raw_speech,
         "privileged_memo": privileged_memo,
         "sanitized_payload": sanitized_payload,
         "memo_file_path": memo_path

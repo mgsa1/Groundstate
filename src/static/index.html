@@ -3,586 +3,623 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Groundstate v0 - Secure AI Workspace Agent</title>
-    <!-- Outfit Typography from Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Space+Mono&display=swap" rel="stylesheet">
+    <title>Groundstate — Secure AI Workspace Agent</title>
+
+    <!-- Google Fonts Integration for Figtree, JetBrains Mono, and Material Symbols -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0,0&display=swap" rel="stylesheet">
+
     <style>
+        /* =========================================================================
+           GROUNDSTATE — Design Charter v2 (verbatim matching style)
+           ========================================================================= */
         :root {
-            --bg-dark: #0a0e17;
-            --card-bg: rgba(16, 20, 30, 0.65);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --text-primary: #f3f4f6;
-            --text-secondary: #9ca3af;
-            --neon-green: #10b981;
-            --neon-blue: #3b82f6;
-            --neon-red: #ef4444;
-            --glow-green: 0 0 15px rgba(16, 185, 129, 0.4);
-            --glow-blue: 0 0 15px rgba(59, 130, 246, 0.4);
+            /* Surfaces — warm + cool to make the boundary spatial */
+            --surface-page:    #fbfaf7;
+            --surface-card:    #ffffff;
+            --surface-local:   #f8f1df;    /* cream — local enclave */
+            --surface-cloud:   #e9f0fb;    /* paper-blue — cloud gateway */
+            --surface-sunken:  #f5f4f0;
+            --surface-mono:    #14161a;
+
+            /* Borders */
+            --border-1:        #e6e3dc;
+            --border-2:        #d5d2ca;
+            --border-local:    #e9d9a6;
+            --border-cloud:    #c9d8f0;
+            --border-focus:    #2c6ef2;
+
+            /* Text */
+            --text-1:          #1c1d20;
+            --text-2:          #5b6470;
+            --text-3:          #8a8f99;
+            --text-on-mono:    #e8eaee;
+            --text-inverse:    #ffffff;
+
+            /* Signal */
+            --primary:         oklch(0.58 0.16 258);
+            --primary-ink:     oklch(0.42 0.18 258);
+            --primary-soft:    oklch(0.96 0.03 258);
+
+            --local:           oklch(0.55 0.13 152);
+            --local-ink:       oklch(0.42 0.14 152);
+            --local-soft:      oklch(0.96 0.04 152);
+
+            --alert:           oklch(0.58 0.18 28);
+            --alert-soft:      oklch(0.96 0.05 28);
+
+            --warn:            oklch(0.72 0.14 75);
+            --warn-soft:       oklch(0.96 0.05 75);
+
+            /* Spacing */
+            --s-1: 4px;  --s-2: 8px;  --s-3: 12px;  --s-4: 16px;
+            --s-5: 24px; --s-6: 32px; --s-7: 48px;  --s-8: 64px;
+
+            /* Radius */
+            --r-1: 6px;  --r-2: 10px; --r-3: 14px;  --r-pill: 999px;
+
+            /* Type */
+            --font-ui:   "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+            --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+            /* Motion */
+            --ease:    cubic-bezier(.2,.7,.2,1);
+            --t-fast:  120ms;
+            --t-base:  180ms;
+
+            /* Elevation */
+            --shadow-1: 0 1px 0 rgba(20,22,26,.04), 0 1px 2px rgba(20,22,26,.04);
+
+            /* ---- Back-compat aliases for v0 token names ---- */
+            --bg-dark:         var(--surface-page);
+            --card-bg:         var(--surface-card);
+            --border-color:    var(--border-1);
+            --text-primary:    var(--text-1);
+            --text-secondary:  var(--text-2);
+            --neon-blue:       var(--primary);
+            --neon-green:      var(--local);
+            --neon-red:        var(--alert);
+            --glow-blue:       none;
+            --glow-green:      none;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        /* RESET + BASE */
+        *, *::before, *::after { box-sizing: border-box; }
+        * { margin: 0; padding: 0; }
 
+        html, body {
+            font-family: var(--font-ui);
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-1);
+            background: var(--surface-page);
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+        }
         body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-primary);
             min-height: 100vh;
-            overflow-x: hidden;
             display: flex;
             flex-direction: column;
             position: relative;
+            overflow-x: hidden;
         }
 
-        /* Neon Background Blobs */
-        .ambient-blob {
-            position: absolute;
-            width: 400px;
-            height: 400px;
-            border-radius: 50%;
-            filter: blur(140px);
-            z-index: -1;
-            opacity: 0.18;
-        }
-        .blob-1 {
-            background-color: var(--neon-blue);
-            top: -100px;
-            left: -100px;
-        }
-        .blob-2 {
-            background-color: var(--neon-green);
-            bottom: -100px;
-            right: -100px;
-        }
-
+        /* HEADER */
         header {
-            padding: 20px 40px;
+            padding: 14px 28px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            background: rgba(10, 14, 23, 0.8);
-            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-1);
+            background: var(--surface-card);
             z-index: 10;
         }
 
         .logo-section h1 {
-            font-size: 1.6rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-green) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-family: var(--font-ui);
+            font-weight: 600;
+            font-size: 17px;
+            letter-spacing: -0.01em;
+            color: var(--text-1);
             display: flex;
             align-items: center;
             gap: 10px;
         }
-
-        .status-indicators {
-            display: flex;
-            gap: 15px;
+        .logo-section h1::before {
+            content: "";
+            width: 22px; height: 22px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, var(--primary) 0% 50%, var(--local) 50% 100%);
+            display: inline-block;
+        }
+        .logo-section .v {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--surface-sunken);
+            border: 1px solid var(--border-1);
+            margin-left: 4px;
         }
 
+        .header-right { display: flex; align-items: center; gap: 12px; }
+
+        .status-indicators { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        /* BADGES */
         .badge {
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
+            padding: 5px 11px;
+            border-radius: var(--r-pill);
+            background: var(--surface-card);
+            border: 1px solid var(--border-1);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-2);
         }
 
         .badge-led {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--text-3);
         }
-        .led-green {
-            background-color: var(--neon-green);
-            box-shadow: 0 0 8px var(--neon-green);
-            animation: pulse 2s infinite;
-        }
-        .led-blue {
-            background-color: var(--neon-blue);
-            box-shadow: 0 0 8px var(--neon-blue);
-        }
+        .led-green { background: var(--local); }
+        .led-blue  { background: var(--primary); }
 
-        @keyframes pulse {
-            0% { opacity: 0.5; }
-            50% { opacity: 1; }
-            100% { opacity: 0.5; }
-        }
 
-        /* Dashboard Grid Layout */
+
+        /* MAIN GRID */
         main {
             flex: 1;
             display: grid;
-            grid-template-columns: 1fr 60px 1.1fr;
-            padding: 24px 40px;
-            gap: 20px;
-            max-width: 1600px;
-            margin: 0 auto;
+            grid-template-columns: 1fr 1fr;
+            padding: 20px 28px 28px;
+            gap: 16px;
+            max-width: 1640px;
             width: 100%;
+            margin: 0 auto;
         }
 
-        .column {
+        .column { display: flex; flex-direction: column; gap: 16px; }
+
+        /* Column labels sitting above the cards */
+        .col-label {
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            align-items: center;
+            gap: 8px;
+            padding: 0 4px;
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--text-3);
+            margin-bottom: -8px;
         }
+        .col-label .dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .col-label.local .dot { background: var(--local); }
+        .col-label.cloud .dot { background: var(--primary); }
+        .col-label.local strong { color: var(--local-ink); font-weight: 600; }
+        .col-label.cloud strong { color: var(--primary-ink); font-weight: 600; }
 
-        /* Glass Card Components */
+        /* CARDS */
         .glass-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 24px;
-            backdrop-filter: blur(12px);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+            background: var(--surface-card);
+            border: 1px solid var(--border-1);
+            border-top: 3px solid transparent;   /* accent slot */
+            border-radius: var(--r-3);
+            padding: 20px 22px;
+            box-shadow: var(--shadow-1);
             display: flex;
             flex-direction: column;
             position: relative;
             overflow: hidden;
         }
 
+        /* Left column = on device */
+        main > section.column:first-of-type > .glass-card {
+            background: var(--surface-local);
+            border-color: var(--border-local);
+            border-top-color: var(--local);
+        }
+
+        /* Right column = cloud agent */
+        main > section.column ~ section.column > .glass-card {
+            background: var(--surface-cloud);
+            border-color: var(--border-cloud);
+            border-top-color: var(--primary);
+        }
+
+        /* Bottom section neutral */
+        .bottom-proof-section {
+            grid-column: 1 / -1;
+        }
+        .bottom-proof-section > .glass-card {
+            background: var(--surface-card) !important;
+            border-color: var(--border-1) !important;
+            border-top-color: var(--text-3) !important;
+        }
+
         .card-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 18px;
+            align-items: baseline;
+            margin-bottom: 14px;
             padding-bottom: 12px;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid color-mix(in oklab, var(--border-1) 70%, transparent);
+            gap: 12px;
         }
 
         .card-title {
-            font-size: 1.15rem;
+            font-size: 15px;
             font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .card-subtitle {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* Controls / Buttons */
-        .controls {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .btn {
-            font-family: 'Outfit', sans-serif;
-            font-weight: 600;
-            font-size: 0.85rem;
-            padding: 10px 18px;
-            border-radius: 8px;
-            border: 1px solid transparent;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            letter-spacing: -0.005em;
+            color: var(--text-1);
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
+        .card-subtitle {
+            font-size: 11px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 500;
+        }
+
+        /* BUTTONS */
+        .controls { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+
+        .btn {
+            font-family: var(--font-ui);
+            font-weight: 500;
+            font-size: 13px;
+            padding: 8px 14px;
+            border-radius: var(--r-1);
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: background var(--t-fast) var(--ease),
+                        border-color var(--t-fast) var(--ease);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            line-height: 1;
+        }
+
         .btn-primary {
-            background: linear-gradient(135deg, var(--neon-blue) 0%, #1d4ed8 100%);
-            color: white;
-            box-shadow: var(--glow-blue);
+            background: var(--primary) !important;
+            color: var(--text-inverse);
+            border-color: var(--primary);
         }
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+            background: var(--primary-ink) !important;
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
+            background: var(--surface-card) !important;
+            border-color: var(--border-2);
+            color: var(--text-1);
         }
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--surface-sunken) !important;
         }
 
         .btn-danger {
-            background: linear-gradient(135deg, var(--neon-red) 0%, #b91c1c 100%);
-            color: white;
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+            background: var(--surface-card) !important;
+            border-color: var(--border-2);
+            color: var(--text-1);
         }
         .btn-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+            background: var(--surface-sunken) !important;
         }
 
-        /* Streaming Logs Box */
+        /* TERMINAL LOGS */
         .terminal-box {
-            font-family: 'Space Mono', monospace;
-            font-size: 0.85rem;
-            background: rgba(5, 7, 12, 0.95);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            height: 180px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            background: var(--surface-mono);
+            border: 1px solid var(--surface-mono);
+            border-radius: var(--r-2);
+            padding: 12px 14px;
+            color: var(--text-on-mono);
             overflow-y: auto;
             white-space: pre-wrap;
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+            gap: 4px;
+            line-height: 1.55;
         }
+        .terminal-line { font-family: var(--font-mono); }
+        .line-info     { color: #a8c8ff; }
+        .line-success  { color: #7fd6a3; }
+        .line-warning  { color: #f6c178; }
+        .line-status   { color: #cbd0d8; }
 
-        .terminal-line {
-            line-height: 1.4;
-        }
-        .line-info { color: #a855f7; }
-        .line-success { color: var(--neon-green); }
-        .line-warning { color: #eab308; }
-        .line-status { color: #3b82f6; }
-
-        /* Intake Memo Display */
+        /* INTAKE / TRANSCRIPT DISPLAYS */
         .memo-box {
-            background: rgba(10, 14, 23, 0.5);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            height: 250px;
+            background: var(--surface-card);
+            border: 1px solid var(--border-1);
+            border-radius: var(--r-2);
+            padding: 12px 14px;
             overflow-y: auto;
-            font-size: 0.9rem;
-            line-height: 1.5;
-            color: #d1d5db;
+            font-size: 13px;
+            line-height: 1.55;
+            color: var(--text-1);
         }
-
         .memo-box h1, .memo-box h2, .memo-box h3 {
-            color: var(--neon-green);
-            margin-bottom: 10px;
-            font-size: 1.1rem;
+            color: var(--text-1) !important;
+            margin-bottom: 8px;
+            margin-top: 12px;
+            font-size: 14px;
+            font-weight: 600;
         }
-        .memo-box ul {
-            padding-left: 20px;
-            margin-bottom: 10px;
+        .memo-box h1:first-child,
+        .memo-box h2:first-child,
+        .memo-box h3:first-child { margin-top: 0; }
+        .memo-box ul { padding-left: 18px; margin-bottom: 10px; }
+        .memo-box strong { color: var(--text-1); font-weight: 600; }
+
+        /* CLOUD AGENT STREAMING */
+        .agent-stream {
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            background: var(--surface-mono);
+            border: 1px solid var(--surface-mono);
+            border-radius: var(--r-2);
+            padding: 12px 14px;
+            color: #e7d8fa;
+            line-height: 1.6;
+            overflow-y: auto;
         }
 
-        /* Center Column Gateway Arrow */
-        .gateway-column {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100%;
+        .payload-display {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            background: var(--surface-card);
+            border: 1px dashed var(--border-2);
+            border-radius: var(--r-2);
+            padding: 12px 14px;
+            color: var(--primary-ink);
+            overflow-x: auto;
+            margin-top: 4px;
+            line-height: 1.55;
+            white-space: pre;
         }
 
-        .firewall-line {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            position: relative;
-        }
-
-        .firewall-badge {
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            padding: 12px 6px;
-            border-radius: 6px;
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: var(--neon-red);
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            animation: pulse-border 2s infinite;
-        }
-
-        @keyframes pulse-border {
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-            70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
-
-        .gate-arrow {
-            width: 24px;
-            height: 24px;
-            border-right: 3px solid var(--neon-green);
-            border-bottom: 3px solid var(--neon-green);
-            transform: rotate(-45deg);
-            animation: slide-arrow 1.5s infinite;
-        }
-
-        @keyframes slide-arrow {
-            0% { transform: translateY(-10px) rotate(-45deg); opacity: 0.2; }
-            50% { opacity: 1; }
-            100% { transform: translateY(10px) rotate(-45deg); opacity: 0.2; }
-        }
-
-        /* Workspace Action Ledger */
+        /* LEDGER ACTION SYSTEM */
         .action-ledger {
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            background: rgba(5, 7, 12, 0.85);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            max-height: 140px;
+            gap: 6px;
+            background: var(--surface-card);
+            border: 1px solid var(--border-1);
+            border-radius: var(--r-2);
+            padding: 8px;
+            max-height: 160px;
             overflow-y: auto;
-            font-size: 0.8rem;
-            margin-top: 8px;
-            margin-bottom: 8px;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+            margin-top: 4px;
         }
+
         .ledger-placeholder {
-            color: var(--text-secondary);
+            color: var(--text-3) !important;
             text-align: center;
-            padding: 15px 0;
-            font-style: italic;
-            font-family: 'Space Mono', monospace;
-            font-size: 0.75rem;
+            padding: 16px 8px;
+            font-family: var(--font-mono);
+            font-size: 11.5px;
         }
+
         .ledger-item {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 8px 12px;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--border-color);
-            animation: fadeIn 0.3s ease;
+            padding: 8px 10px;
+            border-radius: var(--r-1);
+            background: var(--surface-page);
+            border: 1px solid var(--border-1);
+            animation: gs-ledger-in 220ms var(--ease);
         }
+        @keyframes gs-ledger-in {
+            from { opacity: 0; transform: translateY(2px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
         .ledger-icon {
-            font-size: 1.1rem;
-            display: flex;
+            font-size: 14px;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 18px;
-            height: 18px;
+            width: 22px; height: 22px;
+            flex-shrink: 0;
+            background: var(--surface-card);
+            border: 1px solid var(--border-1);
+            border-radius: 6px;
         }
+
         .ledger-text {
-            color: #d1d5db;
             flex: 1;
-            font-family: 'Space Mono', monospace;
-            font-size: 0.75rem;
-            line-height: 1.3;
+            font-family: var(--font-ui);
+            font-size: 12.5px;
+            line-height: 1.4;
+            color: var(--text-1);
         }
+        .ledger-text strong { font-weight: 600; }
+        .ledger-text > span { color: var(--text-3) !important; font-family: var(--font-mono); font-size: 11px !important; }
+
         .ledger-status {
-            font-size: 0.7rem;
-            font-weight: 600;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 500;
             text-transform: uppercase;
-            padding: 2px 6px;
-            border-radius: 4px;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.06em;
+            padding: 3px 7px;
+            border-radius: var(--r-pill);
+            flex-shrink: 0;
         }
         .status-running {
-            background: rgba(59, 130, 246, 0.15);
-            color: var(--neon-blue);
-            animation: ledgerPulse 1.5s infinite;
+            background: var(--primary-soft);
+            color: var(--primary-ink);
+            border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
+            animation: gs-status-pulse 1.4s ease-in-out infinite;
         }
         .status-done {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--neon-green);
+            background: var(--local-soft);
+            color: var(--local-ink);
+            border: 1px solid color-mix(in oklab, var(--local) 20%, transparent);
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes ledgerPulse {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
+        @keyframes gs-status-pulse {
+            0%, 100% { opacity: 0.65; }
+            50%      { opacity: 1; }
         }
 
-        /* Right Column Cloud View */
-        .agent-stream {
-            font-family: 'Space Mono', monospace;
-            font-size: 0.85rem;
-            background: rgba(5, 7, 12, 0.95);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            height: 220px;
-            overflow-y: auto;
-            color: #d8b4fe;
-            line-height: 1.5;
-            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
-        }
-
-        .payload-display {
-            font-family: 'Space Mono', monospace;
-            font-size: 0.8rem;
-            background: rgba(10, 14, 23, 0.6);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            color: var(--neon-blue);
-            overflow-x: auto;
-            margin-top: 8px;
-        }
-
-        .calendar-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            height: 210px;
-            overflow-y: auto;
-        }
-
-        .cal-panel {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-        }
-
-        .cal-panel-title {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-        }
-
-        .cal-event {
-            font-size: 0.75rem;
-            padding: 6px 10px;
-            border-radius: 4px;
-            margin-bottom: 6px;
-            border-left: 3px solid transparent;
-        }
-        .cal-lawyer {
-            background: rgba(59, 130, 246, 0.1);
-            border-left-color: var(--neon-blue);
-        }
-        .cal-client {
-            background: rgba(16, 185, 129, 0.1);
-            border-left-color: var(--neon-green);
-        }
-        .cal-conflict {
-            background: rgba(239, 68, 68, 0.15);
-            border-left-color: var(--neon-red);
-            font-weight: 600;
-        }
-
+        /* EMAIL DRAFT */
         .email-composer {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            font-size: 0.85rem;
+            background: var(--surface-card);
+            border: 1px solid var(--border-1);
+            border-radius: var(--r-2);
+            padding: 14px 16px;
+            font-size: 13px;
         }
-
         .email-field {
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             display: flex;
             gap: 10px;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-1);
             padding-bottom: 6px;
+            font-size: 12.5px;
         }
-        .email-label {
-            color: var(--text-secondary);
-            width: 60px;
-        }
-
+        .email-label { color: var(--text-3); width: 64px; font-weight: 500; }
         .email-body {
-            height: 100px;
             overflow-y: auto;
             white-space: pre-wrap;
-            color: #d1d5db;
-            padding-top: 8px;
+            color: var(--text-1);
+            padding-top: 10px;
+            font-size: 13px;
+            line-height: 1.6;
         }
 
-        /* Bottom Row Chat Container */
-        .bottom-proof-section {
-            grid-column: span 3;
-        }
-
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-top: 10px;
-        }
+        /* VERIFY / CHAT SYSTEM */
+        .chat-container { display: flex; flex-direction: column; gap: 10px; }
 
         .chat-messages {
-            height: 140px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            padding-right: 10px;
+            gap: 8px;
+            padding-right: 6px;
         }
 
         .chat-bubble {
-            max-width: 80%;
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-size: 0.9rem;
-            line-height: 1.4;
+            max-width: 78%;
+            padding: 9px 13px;
+            border-radius: var(--r-3);
+            font-size: 13px;
+            line-height: 1.5;
+            border: 1px solid var(--border-1);
         }
         .bubble-user {
-            background: rgba(59, 130, 246, 0.15);
-            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: var(--primary-soft);
+            border-color: color-mix(in oklab, var(--primary) 20%, transparent);
             align-self: flex-end;
-            border-bottom-right-radius: 2px;
+            border-bottom-right-radius: 4px;
         }
         .bubble-agent {
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            background: var(--surface-card);
             align-self: flex-start;
-            border-bottom-left-radius: 2px;
+            border-bottom-left-radius: 4px;
         }
 
-        .chat-input-bar {
-            display: flex;
-            gap: 10px;
-        }
+        .chat-input-bar { display: flex; gap: 8px; }
 
         .chat-input {
             flex: 1;
-            background: rgba(5, 7, 12, 0.8);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px 16px;
-            color: var(--text-primary);
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
+            background: var(--surface-card);
+            border: 1px solid var(--border-2);
+            border-radius: var(--r-1);
+            padding: 10px 14px;
+            color: var(--text-1);
+            font-family: var(--font-ui);
+            font-size: 13px;
+            transition: border-color var(--t-fast) var(--ease),
+                        box-shadow var(--t-fast) var(--ease);
         }
         .chat-input:focus {
             outline: none;
-            border-color: var(--neon-blue);
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 18%, transparent);
+        }
+
+        /* GENERAL REFINEMENTS */
+        .field-label {
+            font-size: 11px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .empty {
+            color: var(--text-3);
+            text-align: center;
+            font-size: 12.5px;
+            padding: 22px 12px;
+        }
+        .empty .material-symbols-outlined {
+            font-size: 20px;
+            display: block;
+            margin: 0 auto 6px;
+            color: var(--text-3);
+        }
+
+        .stack { display: flex; flex-direction: column; gap: 12px; }
+
+        /* Material icon configuration */
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+            font-weight: normal;
+            font-style: normal;
+            font-size: 18px;
+            line-height: 1;
+            display: inline-block;
+            white-space: nowrap;
+            direction: ltr;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            vertical-align: -3px;
+            color: currentColor;
+            -webkit-font-feature-settings: 'liga';
+            font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
         }
     </style>
 </head>
 <body>
 
-    <!-- Ambient blur spheres -->
-    <div class="ambient-blob blob-1"></div>
-    <div class="ambient-blob blob-2"></div>
-
     <!-- Header navigation -->
     <header>
         <div class="logo-section">
-            <h1>🛡️ Groundstate <span style="font-weight: 300; font-size: 1.2rem;">v0</span></h1>
+            <h1>Groundstate <span class="v">v0.1</span></h1>
         </div>
-        <div class="status-indicators">
-            <div class="badge">
-                <div class="badge-led led-green"></div>
-                Local Guardian Shield: ACTIVE
+        <div class="header-right">
+            <div class="status-indicators">
+                <div class="badge">
+                    <span class="badge-led led-green"></span>
+                    On device · ready
+                </div>
+                <div class="badge" id="cloud-agent-badge">
+                    <span class="badge-led led-blue" style="background: var(--text-3);"></span>
+                    Cloud agent · idle
+                </div>
             </div>
-            <div class="badge">
-                <div class="badge-led led-blue"></div>
-                Workspace Node: ONLINE
-            </div>
+
         </div>
     </header>
 
@@ -590,111 +627,116 @@
     <main>
         <!-- LEFT COLUMN: LOCAL ATTORNEY LAPTOP -->
         <section class="column">
+            <div class="col-label local">
+                <span class="dot"></span>
+                <strong>On device</strong> · stays here
+            </div>
+
             <div class="glass-card" style="flex: 1;">
-                <div class="card-header">
-                    <div class="card-title">🛡️ On-Device Environment</div>
-                    <div class="card-subtitle">Attorney Client Laptop</div>
-                </div>
 
                 <div class="controls">
                     <button class="btn btn-primary" id="btn-simulated" onclick="triggerPipeline('simulated')">
-                        📁 Confession Extract
+                        <span class="material-symbols-outlined">play_arrow</span> Run intake
                     </button>
                     <button class="btn btn-secondary" id="btn-live" onclick="toggleLiveRecording()">
-                        🎙️ Start Live Mic
+                        <span class="material-symbols-outlined">mic</span> Live mic
                     </button>
                     <button class="btn btn-danger" onclick="setupCalendar()">
-                        🔄 Seed Calendars
+                        <span class="material-symbols-outlined">refresh</span> Reset calendars
                     </button>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
-                    <div class="card-subtitle" style="margin-bottom: -8px;">Pipeline Ledger</div>
-                    <div class="terminal-box" id="terminal" style="height: 100px;">
-                        <div class="terminal-line line-status">> Groundstate secure enclave initialized.</div>
-                        <div class="terminal-line line-status">> Google Calendar API loaded.</div>
-                        <div class="terminal-line line-status">> Local E2B model mapped to Metal.</div>
-                    </div>
-
-                    <div class="card-subtitle" style="margin-bottom: -8px;">On-Device Audio Transcript (Raw Speech)</div>
-                    <div class="memo-box" id="transcript-display" style="height: 120px;">
-                        <div style="color: var(--text-secondary); text-align: center; margin-top: 25px;">
-                            Waiting for client voice confession input...
+                <div class="stack">
+                    <div>
+                        <div class="field-label">Pipeline log</div>
+                        <div class="terminal-box" id="terminal" style="height: 100px;">
+                            <div class="terminal-line line-status">> Secure enclave initialized.</div>
+                            <div class="terminal-line line-status">> Google Calendar API loaded.</div>
+                            <div class="terminal-line line-status">> Local E2B model mapped to Metal.</div>
                         </div>
                     </div>
 
-                    <div class="card-subtitle" style="margin-bottom: -8px;">Confidential Case Intake Memo (Local Enclave Only)</div>
-                    <div class="memo-box" id="memo-display" style="height: 220px;">
-                        <div style="color: var(--text-secondary); text-align: center; margin-top: 50px;">
-                            Privileged case notes will compile securely inside the local hardware.
+                    <div>
+                        <div class="field-label">Raw transcript</div>
+                        <div class="memo-box" id="transcript-display" style="height: 90px;">
+                            <div class="empty">
+                                <span class="material-symbols-outlined">graphic_eq</span>
+                                Waiting for client voice confession input...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="field-label">Privileged memo</div>
+                        <div class="memo-box" id="memo-display" style="height: 200px;">
+                            <div class="empty">
+                                <span class="material-symbols-outlined">hourglass_top</span>
+                                Privileged case notes will compile securely inside the local hardware.
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
-
-        <!-- CENTER COLUMN: HARD FIREWALL BOUNDARY -->
-        <section class="gateway-column">
-            <div class="firewall-line">
-                <div class="firewall-badge">PII SECURITY FIREWALL</div>
-                <div class="gate-arrow"></div>
-                <div class="firewall-badge">ON-DEVICE BOUNDARY</div>
             </div>
         </section>
 
         <!-- RIGHT COLUMN: CLOUD WORKSPACE AGENT -->
         <section class="column">
+            <div class="col-label cloud">
+                <span class="dot"></span>
+                <strong>Sent to cloud</strong> · sanitized
+            </div>
+
             <!-- Glass card 1: Managed Agent Reasoning -->
             <div class="glass-card" style="flex: 1.2;">
-                <div class="card-header">
-                    <div class="card-title">🌐 Cloud Managed Agent</div>
-                    <div class="card-subtitle">Gemini-backed Interaction</div>
-                </div>
 
-                <div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
-                    <div class="card-subtitle" style="margin-bottom: -5px;">Sanitized Payload Emitted</div>
-                    <pre class="payload-display" id="payload-display">{"status": "Waiting for local model..."}</pre>
-
-                    <div class="card-subtitle" style="margin-bottom: -5px;">⚡ Live Workspace Action Ledger</div>
-                    <div id="action-ledger" class="action-ledger">
-                        <div class="ledger-placeholder">No actions triggered yet...</div>
+                <div class="stack">
+                    <div>
+                        <div class="field-label">Sanitized payload</div>
+                        <pre class="payload-display" id="payload-display">{"status": "Waiting for local model..."}</pre>
                     </div>
 
-                    <div class="card-subtitle" style="margin-bottom: -5px;">Streaming Agent Thinking</div>
-                    <div class="agent-stream" id="agent-stream" style="height: 140px;">Agent session not active. Stream will commence upon intent transmission.</div>
+                    <div>
+                        <div class="field-label">Workspace actions</div>
+                        <div id="action-ledger" class="action-ledger">
+                            <div class="ledger-placeholder">No actions triggered yet...</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="field-label">Agent reasoning</div>
+                        <div class="agent-stream" id="agent-stream" style="height: 120px;">
+                            <span style="color: var(--text-3);">Agent idle. Stream will commence upon intent transmission.</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Glass card 2: Calendar status and email draft -->
-            <div class="glass-card" style="flex: 1;">
+            <!-- Glass card 2: Composed Email Draft -->
+            <div class="glass-card">
                 <div class="card-header">
-                    <div class="card-title">📅 Live Rescheduling & Composed Draft</div>
-                    <div class="card-subtitle">Local Workspace Actions</div>
+                    <div class="card-title">
+                        <span class="material-symbols-outlined" style="color: var(--primary);">mail</span>
+                        Email draft
+                    </div>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 15px;">
-                    <div class="calendar-section" id="calendar-section" style="height: 180px;">
-                        <div class="cal-panel">
-                            <div class="cal-panel-title">Lawyer (Primary)</div>
-                            <div class="cal-event cal-lawyer">Seeding required...</div>
-                        </div>
-                        <div class="cal-panel">
-                            <div class="cal-panel-title">Client (Matthieu)</div>
-                            <div class="cal-event cal-client">Seeding required...</div>
-                        </div>
+                <div class="email-composer">
+                    <div class="email-field">
+                        <span class="email-label">To</span>
+                        <span id="email-to" style="color: var(--text-primary);">--</span>
                     </div>
-
-                    <div class="email-composer">
-                        <div class="email-field">
-                            <span class="email-label">To:</span>
-                            <span id="email-to" style="color: var(--text-primary);">--</span>
-                        </div>
-                        <div class="email-field">
-                            <span class="email-label">Subject:</span>
-                            <span id="email-subject" style="color: var(--text-primary);">--</span>
-                        </div>
-                        <div class="email-body" id="email-body" style="height: 70px;">Draft confirmation email will be previewed here once constructed...</div>
+                    <div class="email-field">
+                        <span class="email-label">Subject</span>
+                        <span id="email-subject" style="color: var(--text-primary);">--</span>
                     </div>
+                    <div class="email-field">
+                        <span class="email-label">Status</span>
+                        <span style="color: var(--local-ink); font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                            <span class="material-symbols-outlined" style="font-size: 14px;">drafts</span>
+                            Saved as draft · not sent
+                        </span>
+                    </div>
+                    <div class="email-body" id="email-body" style="height: 80px;">Draft confirmation email will be previewed here once constructed...</div>
                 </div>
             </div>
         </section>
@@ -703,19 +745,32 @@
         <section class="bottom-proof-section">
             <div class="glass-card">
                 <div class="card-header">
-                    <div class="card-title">🔐 Attorney-Client Privilege Proof Console</div>
-                    <div class="card-subtitle">Confidentiality Verification</div>
+                    <div class="card-title">
+                        <span class="material-symbols-outlined">verified_user</span>
+                        Verify · ask the cloud agent anything
+                    </div>
+                    <div class="header-right">
+                        <div class="status-indicators">
+                            <div class="badge" id="verify-agent-badge">
+                                <span class="badge-led led-blue" style="background: var(--text-3);"></span>
+                                Cloud agent · idle
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
+
                 <div class="chat-container">
-                    <div class="chat-messages" id="chat-messages" style="height: 110px;">
+                    <div class="chat-messages" id="chat-messages" style="height: 120px;">
                         <div class="chat-bubble bubble-agent">
-                            Welcome to the Groundstate Privilege Proof Console. To verify confidentiality, type an interrogation query (e.g., "Who stole the banana bread?") to test if the cloud agent learned any sensitive PII.
+                            Groundstate Privilege Proof Console initialized.
                         </div>
                     </div>
                     <div class="chat-input-bar">
-                        <input type="text" class="chat-input" id="chat-input" placeholder="Type query to test cloud agent (e.g. Who stole the banana bread?)..." onkeydown="if(event.key==='Enter') sendProofQuery()">
-                        <button class="btn btn-primary" onclick="sendProofQuery()">Interrogate</button>
+                        <input type="text" class="chat-input" id="chat-input" placeholder="Ask the cloud agent something sensitive..." onkeydown="if(event.key==='Enter') sendProofQuery()">
+                        <button class="btn btn-primary" onclick="sendProofQuery()">
+                            <span class="material-symbols-outlined">send</span> Verify
+                        </button>
                     </div>
                 </div>
             </div>
@@ -727,6 +782,28 @@
         let isRecording = false;
         let fullAgentText = "";
         const processedToolCalls = new Set();
+
+        function updateAgentStatus(interactionId) {
+            const headerBadge = document.getElementById("cloud-agent-badge");
+            const verifyBadge = document.getElementById("verify-agent-badge");
+            
+            if (interactionId) {
+                const shortId = interactionId.length > 10 ? interactionId.substring(0, 10) + "..." : interactionId;
+                const statusHtml = `
+                    <span class="badge-led led-blue"></span>
+                    Cloud agent · ${shortId}
+                `;
+                if (headerBadge) headerBadge.innerHTML = statusHtml;
+                if (verifyBadge) verifyBadge.innerHTML = statusHtml;
+            } else {
+                const statusHtml = `
+                    <span class="badge-led led-blue" style="background: var(--text-3);"></span>
+                    Cloud agent · idle
+                `;
+                if (headerBadge) headerBadge.innerHTML = statusHtml;
+                if (verifyBadge) verifyBadge.innerHTML = statusHtml;
+            }
+        }
 
         function processStreamAndUpdateUI(delta) {
             fullAgentText += delta;
@@ -832,7 +909,6 @@
                 const data = await res.json();
                 if (data.status === "success") {
                     log(`Seeded calendars successfully. Monday: ${data.next_monday}`, "success");
-                    updateCalendarUI(data.inserted_events > 0 ? true : false);
                 } else {
                     log("Calendar seeding failed.", "warning");
                 }
@@ -841,39 +917,18 @@
             }
         }
 
-        function updateCalendarUI(isSeeded) {
-            const section = document.getElementById("calendar-section");
-            if (isSeeded) {
-                section.innerHTML = `
-                    <div class="cal-panel">
-                        <div class="cal-panel-title">Lawyer (Primary)</div>
-                        <div class="cal-event cal-lawyer">🗓️ Mon: Intensive Arbitrations</div>
-                        <div class="cal-event cal-lawyer cal-conflict">🗓️ Tue: Supreme Court Hearing</div>
-                        <div class="cal-event cal-lawyer">🗓️ Wed: Mediation (09:00 - 13:00)</div>
-                        <div class="cal-event cal-lawyer cal-conflict" id="lawyer-slot">🗓️ Wed: Empty Slot (14:00 - 15:00)</div>
-                    </div>
-                    <div class="cal-panel">
-                        <div class="cal-panel-title">Client (Matthieu)</div>
-                        <div class="cal-event cal-client">🗓️ Mon: Hanging near Tartine</div>
-                        <div class="cal-event cal-client">🗓️ Wed: Grocery & Tartine Run</div>
-                        <div class="cal-event cal-conflict" id="client-hairdresser">💇 Wed: Hairdresser (14:00 - 15:30)</div>
-                    </div>
-                `;
-            }
-        }
-
         // Live Mic Recording Trigger
         async function toggleLiveRecording() {
             const btn = document.getElementById("btn-live");
             if (!isRecording) {
                 isRecording = true;
-                btn.textContent = "🛑 Stop Recording";
+                btn.innerHTML = '<span class="material-symbols-outlined">stop_circle</span> Stop';
                 btn.className = "btn btn-danger";
                 log("Live mic capture activated. Processing...", "status");
                 triggerPipeline('live');
             } else {
                 isRecording = false;
-                btn.textContent = "🎙️ Start Live Mic";
+                btn.innerHTML = '<span class="material-symbols-outlined">mic</span> Live mic';
                 btn.className = "btn btn-secondary";
             }
         }
@@ -881,6 +936,9 @@
         // Running the primary secure pipeline
         function triggerPipeline(mode) {
             log(`Running pipeline in ${mode} mode...`, "status");
+            
+            currentInteractionId = null;
+            updateAgentStatus(null);
             
             const eventSource = new EventSource(`/api/pipeline/run?mode=${mode}`);
             const streamBox = document.getElementById("agent-stream");
@@ -918,24 +976,15 @@
 
             eventSource.addEventListener("agent_stream", (event) => {
                 const data = JSON.parse(event.data);
-                currentInteractionId = data.interaction_id;
+                if (data.interaction_id && data.interaction_id !== currentInteractionId) {
+                    currentInteractionId = data.interaction_id;
+                    updateAgentStatus(currentInteractionId);
+                }
                 processStreamAndUpdateUI(data.text);
             });
 
             eventSource.addEventListener("appointments_update", (event) => {
-                // Visual slide animation of calendar reschedule representation
-                log("Managed Agent resolved conflict. Rescheduling Hairdresser and booking consultation...", "success");
-                const lawyerSlot = document.getElementById("lawyer-slot");
-                const hairdresser = document.getElementById("client-hairdresser");
-
-                if (lawyerSlot) {
-                    lawyerSlot.textContent = "⚖️ Wed: Intake Consultation (14:00 - 15:00)";
-                    lawyerSlot.className = "cal-event cal-lawyer";
-                }
-                if (hairdresser) {
-                    hairdresser.textContent = "💇 Wed: Hairdresser (Rescheduled: 15:30 - 17:00)";
-                    hairdresser.className = "cal-event cal-client";
-                }
+                log("Managed Agent resolved calendar conflicts successfully.", "success");
             });
 
             eventSource.addEventListener("email_draft", (event) => {

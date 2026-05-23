@@ -4,10 +4,13 @@ Manages listing appointments, scheduling consultations, rescheduling conflicts,
 and setting up/resetting the demo starting state dynamically.
 """
 import os
+import logging
 from typing import List, Dict, Any
 import datetime
 from googleapiclient.discovery import build
 from src.workspace.auth import get_credentials
+
+logger = logging.getLogger(__name__)
 
 def get_calendar_service():
     """Initializes and returns the authenticated Google Calendar API service client."""
@@ -272,13 +275,25 @@ def create_consultation_event(
 
 def move_appointment(event_id: str, new_start_iso: str) -> Dict[str, Any]:
     """
-    Moves/reschedules an existing event in the lawyer's calendar if needed.
+    Moves/reschedules an existing conflicting appointment in either the lawyer's primary calendar
+    or the client's calendar to a new slot.
     """
     service = get_calendar_service()
+    client_cal_id = get_or_create_client_calendar(service)
+    
+    event = None
+    target_cal_id = "primary"
+    
+    # Try finding in primary calendar first
     try:
         event = service.events().get(calendarId="primary", eventId=event_id).execute()
-    except Exception as e:
-        raise ValueError(f"Event ID {event_id} not found in lawyer calendar: {e}")
+    except Exception:
+        # Fall back to client calendar
+        try:
+            event = service.events().get(calendarId=client_cal_id, eventId=event_id).execute()
+            target_cal_id = client_cal_id
+        except Exception as e:
+            raise ValueError(f"Event ID {event_id} not found in lawyer or client calendar: {e}")
 
     start_str = event["start"].get("dateTime", event["start"].get("date"))
     end_str = event["end"].get("dateTime", event["end"].get("date"))
@@ -295,7 +310,7 @@ def move_appointment(event_id: str, new_start_iso: str) -> Dict[str, Any]:
     event["summary"] = event.get("summary", "") + " (Rescheduled)"
 
     updated_event = service.events().update(
-        calendarId="primary",
+        calendarId=target_cal_id,
         eventId=event_id,
         body=event,
         sendUpdates="all"
@@ -303,6 +318,7 @@ def move_appointment(event_id: str, new_start_iso: str) -> Dict[str, Any]:
 
     return {
         "event_id": updated_event["id"],
+        "calendar_id": target_cal_id,
         "new_time": new_start_iso,
         "summary": updated_event["summary"],
         "status": "rescheduled"

@@ -152,6 +152,13 @@ async def run_pipeline(mode: str = Query("simulated", regex="^(simulated|live)$"
         }
         await asyncio.sleep(0.5)
 
+        # Check if no scheduling action or client intake was requested, and halt early if so
+        if sanitized_json.get("action") == "none" or privileged_memo == "Failed to extract privileged memo.":
+            yield {"event": "status", "data": "🛑 No scheduling intent detected in speech. Pipeline halted safely."}
+            await asyncio.sleep(0.5)
+            yield {"event": "completed", "data": "Pipeline coordination finished. No actions required!"}
+            return
+
         # Step 4: Stream Cloud Agent (Managed Agent) Reasoning
         yield {"event": "status", "data": "🌐 Connecting to Google Cloud Managed Agent (Gemini-backed)..."}
         await asyncio.sleep(0.5)
@@ -160,11 +167,17 @@ async def run_pipeline(mode: str = Query("simulated", regex="^(simulated|live)$"
             from src.gemini_agent import interact_with_agent
             loop = asyncio.get_event_loop()
             
-            # Formulate the payload string
+            # Formulate the payload string with explicit, step-by-step reasoning instructions
             payload_str = (
-                f"I need to schedule a client intake based on this sanitized request:\n"
+                f"You are a secure workspace agent. You must resolve calendar conflicts and book a consultation by executing these steps strictly in order:\n\n"
+                f"1. Call `list_upcoming_events` with `hours_ahead=168` to check the schedules of both the Lawyer (primary calendar) and Client Matthieu.\n"
+                f"2. Inspect the events. Notice the Lawyer is fully booked next week except for the single Wednesday 2:00 PM to 3:00 PM slot (the ONLY available slot).\n"
+                f"3. Notice the Client has a flexible 'Hairdresser Appointment' from 2:00 PM to 3:30 PM on that same Wednesday, creating a direct conflict.\n"
+                f"4. Resolve this conflict: call `reschedule_conflicting_appointment` to move the Client's hairdresser event (using its retrieved event ID) to start at 3:30 PM on that same Wednesday, clearing the 2:00 PM slot.\n"
+                f"5. Book the intake: call `schedule_consultation` at 2:00 PM on that Wednesday for 60 minutes, inviting `cod.legend95@gmail.com` as an attendee.\n"
+                f"6. Draft confirmation: call `draft_confirmation_email` to draft a Gmail message in Gmail for `cod.legend95@gmail.com` confirming the Wednesday 2:00 PM booking, and advising them that their hairdresser slot was shifted to 3:30 PM. Maintain strict confidentiality: do NOT mention any case secrets, crimes, bakery, or banana bread.\n\n"
+                f"Here is the sanitized intake intent:\n"
                 f"{json.dumps(sanitized_json, indent=2)}\n"
-                f"Please list upcoming events for both Lawyer and Client, resolve conflicts, reschedule Matthieu's flexible hair appointment if needed, book the consultation, and draft a confirmation email."
             )
 
             # Define generator for streaming
