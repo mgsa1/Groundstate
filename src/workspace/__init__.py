@@ -1,0 +1,1 @@
+# Groundstate Workspace APIs namespace

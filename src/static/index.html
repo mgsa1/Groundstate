@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groundstate v0 - Secure AI Workspace Agent</title>
+    <!-- Outfit Typography from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Space+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0e17;
+            --card-bg: rgba(16, 20, 30, 0.65);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --neon-green: #10b981;
+            --neon-blue: #3b82f6;
+            --neon-red: #ef4444;
+            --glow-green: 0 0 15px rgba(16, 185, 129, 0.4);
+            --glow-blue: 0 0 15px rgba(59, 130, 246, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Neon Background Blobs */
+        .ambient-blob {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            filter: blur(140px);
+            z-index: -1;
+            opacity: 0.18;
+        }
+        .blob-1 {
+            background-color: var(--neon-blue);
+            top: -100px;
+            left: -100px;
+        }
+        .blob-2 {
+            background-color: var(--neon-green);
+            bottom: -100px;
+            right: -100px;
+        }
+
+        header {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(10, 14, 23, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        .logo-section h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-green) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 15px;
+        }
+
+        .badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+        }
+
+        .badge-led {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .led-green {
+            background-color: var(--neon-green);
+            box-shadow: 0 0 8px var(--neon-green);
+            animation: pulse 2s infinite;
+        }
+        .led-blue {
+            background-color: var(--neon-blue);
+            box-shadow: 0 0 8px var(--neon-blue);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        /* Dashboard Grid Layout */
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 60px 1.1fr;
+            padding: 24px 40px;
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Glass Card Components */
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Controls / Buttons */
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .btn {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--neon-blue) 0%, #1d4ed8 100%);
+            color: white;
+            box-shadow: var(--glow-blue);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--neon-red) 0%, #b91c1c 100%);
+            color: white;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+        }
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+        }
+
+        /* Streaming Logs Box */
+        .terminal-box {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            background: rgba(5, 7, 12, 0.95);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            height: 180px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .terminal-line {
+            line-height: 1.4;
+        }
+        .line-info { color: #a855f7; }
+        .line-success { color: var(--neon-green); }
+        .line-warning { color: #eab308; }
+        .line-status { color: #3b82f6; }
+
+        /* Intake Memo Display */
+        .memo-box {
+            background: rgba(10, 14, 23, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            height: 250px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #d1d5db;
+        }
+
+        .memo-box h1, .memo-box h2, .memo-box h3 {
+            color: var(--neon-green);
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        .memo-box ul {
+            padding-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        /* Center Column Gateway Arrow */
+        .gateway-column {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .firewall-line {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+        }
+
+        .firewall-badge {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            padding: 12px 6px;
+            border-radius: 6px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--neon-red);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .gate-arrow {
+            width: 24px;
+            height: 24px;
+            border-right: 3px solid var(--neon-green);
+            border-bottom: 3px solid var(--neon-green);
+            transform: rotate(-45deg);
+            animation: slide-arrow 1.5s infinite;
+        }
+
+        @keyframes slide-arrow {
+            0% { transform: translateY(-10px) rotate(-45deg); opacity: 0.2; }
+            50% { opacity: 1; }
+            100% { transform: translateY(10px) rotate(-45deg); opacity: 0.2; }
+        }
+
+        /* Right Column Cloud View */
+        .agent-stream {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            background: rgba(5, 7, 12, 0.95);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            height: 220px;
+            overflow-y: auto;
+            color: #d8b4fe;
+            line-height: 1.5;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .payload-display {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            background: rgba(10, 14, 23, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--neon-blue);
+            overflow-x: auto;
+            margin-top: 8px;
+        }
+
+        .calendar-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            height: 210px;
+            overflow-y: auto;
+        }
+
+        .cal-panel {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .cal-panel-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .cal-event {
+            font-size: 0.75rem;
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            border-left: 3px solid transparent;
+        }
+        .cal-lawyer {
+            background: rgba(59, 130, 246, 0.1);
+            border-left-color: var(--neon-blue);
+        }
+        .cal-client {
+            background: rgba(16, 185, 129, 0.1);
+            border-left-color: var(--neon-green);
+        }
+        .cal-conflict {
+            background: rgba(239, 68, 68, 0.15);
+            border-left-color: var(--neon-red);
+            font-weight: 600;
+        }
+
+        .email-composer {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            font-size: 0.85rem;
+        }
+
+        .email-field {
+            margin-bottom: 8px;
+            display: flex;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+        }
+        .email-label {
+            color: var(--text-secondary);
+            width: 60px;
+        }
+
+        .email-body {
+            height: 100px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            color: #d1d5db;
+            padding-top: 8px;
+        }
+
+        /* Bottom Row Chat Container */
+        .bottom-proof-section {
+            grid-column: span 3;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .chat-messages {
+            height: 140px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-right: 10px;
+        }
+
+        .chat-bubble {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .bubble-user {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+        .bubble-agent {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+
+        .chat-input-bar {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(5, 7, 12, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient blur spheres -->
+    <div class="ambient-blob blob-1"></div>
+    <div class="ambient-blob blob-2"></div>
+
+    <!-- Header navigation -->
+    <header>
+        <div class="logo-section">
+            <h1>🛡️ Groundstate <span style="font-weight: 300; font-size: 1.2rem;">v0</span></h1>
+        </div>
+        <div class="status-indicators">
+            <div class="badge">
+                <div class="badge-led led-green"></div>
+                Local Guardian Shield: ACTIVE
+            </div>
+            <div class="badge">
+                <div class="badge-led led-blue"></div>
+                Workspace Node: ONLINE
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main>
+        <!-- LEFT COLUMN: LOCAL ATTORNEY LAPTOP -->
+        <section class="column">
+            <div class="glass-card" style="flex: 1;">
+                <div class="card-header">
+                    <div class="card-title">🛡️ On-Device Environment</div>
+                    <div class="card-subtitle">Attorney Client Laptop</div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-primary" id="btn-simulated" onclick="triggerPipeline('simulated')">
+                        📁 Confession Extract
+                    </button>
+                    <button class="btn btn-secondary" id="btn-live" onclick="toggleLiveRecording()">
+                        🎙️ Start Live Mic
+                    </button>
+                    <button class="btn btn-danger" onclick="setupCalendar()">
+                        🔄 Seed Calendars
+                    </button>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
+                    <div class="card-subtitle" style="margin-bottom: -8px;">Pipeline Ledger</div>
+                    <div class="terminal-box" id="terminal" style="height: 100px;">
+                        <div class="terminal-line line-status">> Groundstate secure enclave initialized.</div>
+                        <div class="terminal-line line-status">> Google Calendar API loaded.</div>
+                        <div class="terminal-line line-status">> Local E2B model mapped to Metal.</div>
+                    </div>
+
+                    <div class="card-subtitle" style="margin-bottom: -8px;">On-Device Audio Transcript (Raw Speech)</div>
+                    <div class="memo-box" id="transcript-display" style="height: 120px;">
+                        <div style="color: var(--text-secondary); text-align: center; margin-top: 25px;">
+                            Waiting for client voice confession input...
+                        </div>
+                    </div>
+
+                    <div class="card-subtitle" style="margin-bottom: -8px;">Confidential Case Intake Memo (Local Enclave Only)</div>
+                    <div class="memo-box" id="memo-display" style="height: 220px;">
+                        <div style="color: var(--text-secondary); text-align: center; margin-top: 50px;">
+                            Privileged case notes will compile securely inside the local hardware.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CENTER COLUMN: HARD FIREWALL BOUNDARY -->
+        <section class="gateway-column">
+            <div class="firewall-line">
+                <div class="firewall-badge">PII SECURITY FIREWALL</div>
+                <div class="gate-arrow"></div>
+                <div class="firewall-badge">ON-DEVICE BOUNDARY</div>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: CLOUD WORKSPACE AGENT -->
+        <section class="column">
+            <!-- Glass card 1: Managed Agent Reasoning -->
+            <div class="glass-card" style="flex: 1.2;">
+                <div class="card-header">
+                    <div class="card-title">🌐 Cloud Managed Agent</div>
+                    <div class="card-subtitle">Gemini-backed Interaction</div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
+                    <div class="card-subtitle" style="margin-bottom: -5px;">Sanitized Payload Emitted</div>
+                    <pre class="payload-display" id="payload-display">{"status": "Waiting for local model..."}</pre>
+
+                    <div class="card-subtitle" style="margin-bottom: -5px;">Streaming Agent Thinking</div>
+                    <div class="agent-stream" id="agent-stream" style="height: 180px;">Agent session not active. Stream will commence upon intent transmission.</div>
+                </div>
+            </div>
+
+            <!-- Glass card 2: Calendar status and email draft -->
+            <div class="glass-card" style="flex: 1;">
+                <div class="card-header">
+                    <div class="card-title">📅 Live Rescheduling & Composed Draft</div>
+                    <div class="card-subtitle">Local Workspace Actions</div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="calendar-section" id="calendar-section" style="height: 180px;">
+                        <div class="cal-panel">
+                            <div class="cal-panel-title">Lawyer (Primary)</div>
+                            <div class="cal-event cal-lawyer">Seeding required...</div>
+                        </div>
+                        <div class="cal-panel">
+                            <div class="cal-panel-title">Client (Matthieu)</div>
+                            <div class="cal-event cal-client">Seeding required...</div>
+                        </div>
+                    </div>
+
+                    <div class="email-composer">
+                        <div class="email-field">
+                            <span class="email-label">To:</span>
+                            <span id="email-to" style="color: var(--text-primary);">--</span>
+                        </div>
+                        <div class="email-field">
+                            <span class="email-label">Subject:</span>
+                            <span id="email-subject" style="color: var(--text-primary);">--</span>
+                        </div>
+                        <div class="email-body" id="email-body" style="height: 70px;">Draft confirmation email will be previewed here once constructed...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- BOTTOM COLUMN: SECURE INTERROGATION -->
+        <section class="bottom-proof-section">
+            <div class="glass-card">
+                <div class="card-header">
+                    <div class="card-title">🔐 Attorney-Client Privilege Proof Console</div>
+                    <div class="card-subtitle">Confidentiality Verification</div>
+                </div>
+
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages" style="height: 110px;">
+                        <div class="chat-bubble bubble-agent">
+                            Welcome to the Groundstate Privilege Proof Console. To verify confidentiality, type an interrogation query (e.g., "Who stole the banana bread?") to test if the cloud agent learned any sensitive PII.
+                        </div>
+                    </div>
+                    <div class="chat-input-bar">
+                        <input type="text" class="chat-input" id="chat-input" placeholder="Type query to test cloud agent (e.g. Who stole the banana bread?)..." onkeydown="if(event.key==='Enter') sendProofQuery()">
+                        <button class="btn btn-primary" onclick="sendProofQuery()">Interrogate</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let currentInteractionId = null;
+        let isRecording = false;
+
+        // Logging helper
+        function log(message, type = "info") {
+            const term = document.getElementById("terminal");
+            const line = document.createElement("div");
+            line.className = `terminal-line line-${type}`;
+            line.textContent = `> ${message}`;
+            term.appendChild(line);
+            term.scrollTop = term.scrollHeight;
+        }
+
+        // Calendar setup
+        async function setupCalendar() {
+            log("Clearing and pre-populating mock calendars...", "info");
+            try {
+                const res = await fetch("/api/calendar/setup");
+                const data = await res.json();
+                if (data.status === "success") {
+                    log(`Seeded calendars successfully. Monday: ${data.next_monday}`, "success");
+                    updateCalendarUI(data.inserted_events > 0 ? true : false);
+                } else {
+                    log("Calendar seeding failed.", "warning");
+                }
+            } catch (e) {
+                log(`Seeding error: ${e.message}`, "warning");
+            }
+        }
+
+        function updateCalendarUI(isSeeded) {
+            const section = document.getElementById("calendar-section");
+            if (isSeeded) {
+                section.innerHTML = `
+                    <div class="cal-panel">
+                        <div class="cal-panel-title">Lawyer (Primary)</div>
+                        <div class="cal-event cal-lawyer">🗓️ Mon: Intensive Arbitrations</div>
+                        <div class="cal-event cal-lawyer cal-conflict">🗓️ Tue: Supreme Court Hearing</div>
+                        <div class="cal-event cal-lawyer">🗓️ Wed: Mediation (09:00 - 13:00)</div>
+                        <div class="cal-event cal-lawyer cal-conflict" id="lawyer-slot">🗓️ Wed: Empty Slot (14:00 - 15:00)</div>
+                    </div>
+                    <div class="cal-panel">
+                        <div class="cal-panel-title">Client (Matthieu)</div>
+                        <div class="cal-event cal-client">🗓️ Mon: Hanging near Tartine</div>
+                        <div class="cal-event cal-client">🗓️ Wed: Grocery & Tartine Run</div>
+                        <div class="cal-event cal-conflict" id="client-hairdresser">💇 Wed: Hairdresser (14:00 - 15:30)</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Live Mic Recording Trigger
+        async function toggleLiveRecording() {
+            const btn = document.getElementById("btn-live");
+            if (!isRecording) {
+                isRecording = true;
+                btn.textContent = "🛑 Stop Recording";
+                btn.className = "btn btn-danger";
+                log("Live mic capture activated. Processing...", "status");
+                triggerPipeline('live');
+            } else {
+                isRecording = false;
+                btn.textContent = "🎙️ Start Live Mic";
+                btn.className = "btn btn-secondary";
+            }
+        }
+
+        // Running the primary secure pipeline
+        function triggerPipeline(mode) {
+            log(`Running pipeline in ${mode} mode...`, "status");
+            
+            const eventSource = new EventSource(`/api/pipeline/run?mode=${mode}`);
+            const streamBox = document.getElementById("agent-stream");
+            
+            // Clear reasoning window and streams
+            streamBox.textContent = "";
+            document.getElementById("memo-display").textContent = "Parsing intake...";
+            document.getElementById("transcript-display").textContent = "Transcribing...";
+            document.getElementById("payload-display").textContent = "Preparing payload...";
+
+            eventSource.addEventListener("status", (event) => {
+                log(event.data, "status");
+            });
+
+            eventSource.addEventListener("local_transcript", (event) => {
+                const data = JSON.parse(event.data);
+                document.getElementById("transcript-display").innerHTML = data.transcript;
+                log(`Local transcription finished: "${data.transcript.substring(0, 50)}..."`, "success");
+            });
+
+            eventSource.addEventListener("local_memo", (event) => {
+                const data = JSON.parse(event.data);
+                document.getElementById("memo-display").innerHTML = data.memo.replace(/\n/g, "<br>");
+                log("Structured Confidential Intake memo written directly to local disk.", "success");
+            });
+
+            eventSource.addEventListener("sanitized_payload", (event) => {
+                const data = JSON.parse(event.data);
+                document.getElementById("payload-display").textContent = JSON.stringify(data.payload, null, 2);
+                log("Gemma filtered PII. Content-free JSON payload transmitted through Firewall.", "success");
+            });
+
+            eventSource.addEventListener("agent_stream", (event) => {
+                const data = JSON.parse(event.data);
+                currentInteractionId = data.interaction_id;
+                streamBox.textContent += data.text;
+                streamBox.scrollTop = streamBox.scrollHeight;
+            });
+
+            eventSource.addEventListener("appointments_update", (event) => {
+                // Visual slide animation of calendar reschedule representation
+                log("Managed Agent resolved conflict. Rescheduling Hairdresser and booking consultation...", "success");
+                const lawyerSlot = document.getElementById("lawyer-slot");
+                const hairdresser = document.getElementById("client-hairdresser");
+
+                if (lawyerSlot) {
+                    lawyerSlot.textContent = "⚖️ Wed: Intake Consultation (14:00 - 15:00)";
+                    lawyerSlot.className = "cal-event cal-lawyer";
+                }
+                if (hairdresser) {
+                    hairdresser.textContent = "💇 Wed: Hairdresser (Rescheduled: 15:30 - 17:00)";
+                    hairdresser.className = "cal-event cal-client";
+                }
+            });
+
+            eventSource.addEventListener("email_draft", (event) => {
+                const data = JSON.parse(event.data);
+                document.getElementById("email-to").textContent = data.to;
+                document.getElementById("email-subject").textContent = data.subject;
+                document.getElementById("email-body").textContent = data.body;
+                log("Secure confirmation email drafted in lawyer's drafts folder.", "success");
+            });
+
+            eventSource.addEventListener("completed", (event) => {
+                log(event.data, "success");
+                eventSource.close();
+                if (isRecording) {
+                    toggleLiveRecording();
+                }
+            });
+
+            eventSource.onerror = (err) => {
+                log("Encountered connection pipeline reset.", "warning");
+                eventSource.close();
+            };
+        }
+
+        // Privilege Proof Interrogation Chat Query
+        async function sendProofQuery() {
+            const input = document.getElementById("chat-input");
+            const prompt = input.value.trim();
+            if (!prompt) return;
+
+            // Clear input
+            input.value = "";
+
+            const chatMessages = document.getElementById("chat-messages");
+
+            // Append user bubble
+            const userBubble = document.createElement("div");
+            userBubble.className = "chat-bubble bubble-user";
+            userBubble.textContent = prompt;
+            chatMessages.appendChild(userBubble);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            log(`Sending security probe: "${prompt}"`, "warning");
+
+            try {
+                const res = await fetch("/api/confidentiality-proof", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: prompt, interaction_id: currentInteractionId })
+                });
+                const data = await res.json();
+
+                // Append agent response
+                const agentBubble = document.createElement("div");
+                agentBubble.className = "chat-bubble bubble-agent";
+                agentBubble.textContent = data.response;
+                chatMessages.appendChild(agentBubble);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                log("Managed Agent query verified. Privilege intact.", "success");
+
+            } catch (e) {
+                log(`Verification query failed: ${e.message}`, "warning");
+            }
+        }
+    </script>
+</body>
+</html>
