@@ -8,6 +8,10 @@ credentials/
 
 # Local data (recordings, case files)
 local_case_files/
+src/static/live_capture.wav
+
+# Local scratchpad — experimentation, not shipped
+scratch/
 
 # Python
 __pycache__/
